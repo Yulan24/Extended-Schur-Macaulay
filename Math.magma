@@ -1,0 +1,17 @@
+function Fo(n,p,d)
+    if d lt 0 then
+        return 0;
+    end if;
+    return &+[(-1)^i*Binomial(n,i)*Binomial(n+d-p*i-1,d-p*i):i in [0..d div p]];
+end function;
+
+function PTo(n1,n2,p,d1,d2)
+    if d1 lt 0 or d2 lt 0 then
+        return 0;
+    end if;
+    return Fo(n1,p,d1-1)*Fo(n2,p,d2)-Fo(n1,p,d1)*Fo(n2,p,d2-1);
+end function;
+
+function STo(n1,n2,m,p,d1,d2)
+    return &+[(-1)^(i+j+k)*Binomial(m,i)*Binomial(m,j)*Binomial(m,k)*PTo(n1,n2,p,d1+1-2*i-k,d2-2*j-k):k in [0..Min(d1+1-2*i,d2-j)],i in [0..(d1+1) div 2],j in [0..d2 div 2]];
+end function;
