@@ -5,6 +5,14 @@ function Fo(n,p,d)
     return &+[(-1)^i*Binomial(n,i)*Binomial(n+d-p*i-1,d-p*i):i in [0..d div p]];
 end function;
 
+function Go(n,p,d)
+    return &+[(-1)^(d-p*i)*Binomial(n,d-p*i)*Binomial(n+i-1,i):i in [0..d div p]];
+end function;
+
+function Ho(n,m,p,d)
+    return &+[(-1)^i*Binomial(m,i)*Fo(n,p,d-2*i):i in [0..d div 2]];
+end function;
+
 function PTo(n1,n2,p,d1,d2)
     if d1 lt 0 or d2 lt 0 then
         return 0;
@@ -14,4 +22,30 @@ end function;
 
 function STo(n1,n2,m,p,d1,d2)
     return &+[(-1)^(i+j+k)*Binomial(m,i)*Binomial(m,j)*Binomial(m,k)*PTo(n1,n2,p,d1+1-2*i-k,d2-2*j-k):k in [0..Min(d1+1-2*i,d2-j)],i in [0..(d1+1) div 2],j in [0..d2 div 2]];
+end function;
+
+function gammon(u,k)
+    R:=Parent(u);
+    p:=Characteristic(R);
+    if k ge p then 
+        return R!0;
+    elif k eq 0 then
+        return R!1;
+    else
+        return (Factorial(k)^(-1))*u^k;
+    end if;
+end function;
+
+function gamgen(f,k)
+    P:=Parent(f);
+    p:=Characteristic(P);
+    R:=quo<P|Ideal([P.i^p:i in [1..Rank(P)]])>;
+    T:=Terms(f);
+    Q:=[R!T[i]:i in [1..#T]];
+
+    if #T eq 1 then 
+        return gammon(Q[1],k);
+    end if;
+
+    return &+[gammon(Q[1],i)*gamgen(f-T[1],k-i):i in [0..Minimum(p-1,k)]];
 end function;
