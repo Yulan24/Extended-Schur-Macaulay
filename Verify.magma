@@ -1,0 +1,160 @@
+load"Math.magma";
+
+function ctb(n,A,d)
+    if n eq 1 and d le A[1] then
+        return [[d]];
+    elif n eq 1 and d gt A[1] then
+        return [];
+    elif Type(A) eq RngIntElt then
+        A:=[A:i in [1..n]];
+        return ctb(n,A,d);
+    end if;
+
+    lo:=Max(0,d-(&+[A[i]:i in [2..n]]));
+    lu:=Min(A[1],d);
+    result:=[];
+
+    if lo gt lu then
+        return [];
+    end if;
+
+    for i in [lo..lu] do
+        for B in ctb(n-1,[A[j]:j in [2..n]],d-i) do
+            Append(~result,[i] cat B);
+        end for;
+    end for;
+
+    return result;
+end function;
+
+function idx(A,p)
+    return &+[A[i]*p^(i-1):i in [1..#A]];
+end function;
+
+function pstmat(n1,n2,p,d1,d2)
+    F:=GF(p);
+    clu:=[];
+    M:=[];
+    k:=0;
+
+	cluidx:=AssociativeArray();
+	for x in ctb(n1,p-1,d1) do
+		for y in ctb(n2,p-1,d2) do
+			Append(~clu,[x,y]);
+			cluidx[idx(x cat y,p)]:=#clu;
+		end for;
+	end for;
+
+    while p^k le d2 do
+        for x in ctb(n1,p-1,d1+p^k) do 
+            for y in ctb(n2,p-1,d2-p^k) do
+                N:=[0:i in [1..#clu]];
+                for z in ctb(n2,[x[i]:i in [1..n2]],p^k) do
+                    if n1 eq n2 then
+                        xt:=[x[i]-z[i]:i in [1..n2]];
+                        yt:=[y[i]+z[i]:i in [1..n2]];
+                    else
+                        xt:=[x[i]-z[i]:i in [1..n2]] cat [x[i]:i in [n2+1..n1]];
+                        yt:=[y[i]+z[i]:i in [1..n2]];
+                    end if;
+                    if Max(yt) le p-1 and F!&*[Binomial(x[i],z[i]):i in [1..n2]] ne 0 then
+                        N[cluidx[idx(xt cat yt,p)]]:=F!&*[Binomial(x[i],z[i]):i in [1..n2]];
+                    end if;
+                end for;
+                Append(~M,N);
+            end for;
+        end for;
+        k:=k+1;
+    end while;
+
+    return Matrix(F,#M,#clu,M);
+end function;
+
+function psthil(n1,n2,p,d1,d2)
+    M:=pstmat(n1,n2,p,d1,d2);
+    return Ncols(M)-Rank(M);
+end function;
+
+procedure pstver(n1,n2,p,D)
+    Range:=[[i,j]:j in [0..Min([i,n2*(p-1),D])],i in [0..Min(n1*(p-1),D)]];
+    M:=[];
+    for d in Range do
+        if psthil(n1,n2,p,d[1],d[2]) ne Max(PTo(n1,n2,p,d[1]+1,d[2]),0) then
+            Append(~M,[d[1],d[2],psthil(n1,n2,p,d[1],d[2]),Max(PTo(n1,n2,p,d[1]+1,d[2]),0)]);
+        end if;
+    end for;
+    if M eq [] then
+        printf "No error";
+    else
+        printf "There are %o errors", #M;
+        print M;
+    end if;
+end procedure;
+
+function sthil(n,v,m,p,d1,d2)
+    F:=GF(p);
+    R:=PolynomialRing(F,2*n);
+    S:=[R.i+(&+[Random(F)*R.j:j in [v+1..n]]):i in [1..v]] cat [R.i:i in [v+1..2*n]];
+    N:=pstmat(n,n,p,d1,d2);
+	    
+    clu:=[];
+	cluidx:=AssociativeArray();
+	for x in ctb(n,p-1,d1) do
+		for y in ctb(n,p-1,d2) do
+			Append(~clu,[x,y]);
+			cluidx[idx(x cat y,p)]:=#clu;
+		end for;
+	end for;
+
+    for i in [1..m] do
+        f:=&+[Random(F)*R.i*R.j:j in [i..n],i in [1..v]];
+        f:=Evaluate(f,S);
+        k:=0;
+        while 2*p^k le d1 do
+            g:=R!gamgen(f,p^k);
+            Z:=[Exponents(a):a in Monomials(g)];
+            C:=Coefficients(g);
+            M:=ZeroMatrix(F,#ctb(n,p-1,d1-2*p^k)*#ctb(n,p-1,d2),#clu);
+            a:=1;
+            for x in ctb(n,p-1,d1-2*p^k) do
+                for y in ctb(n,p-1,d2) do
+                    for j in [1..#Z] do
+                        if Max([x[i]+Z[j][i]:i in [1..n]]) lt p and C[j] ne 0 then
+                            A:=[x[i]+Z[j][i]:i in [1..n]] cat y;
+                            M[a,cluidx[idx(A,p)]]:=C[j];
+                        end if;
+                    end for;
+                    a:=a+1;
+                end for;
+            end for;
+            N:=VerticalJoin(N,M);
+            k:=k+1;
+        end while;
+    end for;
+
+    return #clu-Rank(N);
+end function;
+
+procedure stver(n,v,m,p,D)
+    o:=n-v;
+    Range:=[[i,j]:j in [0..Min([i,o*(p-1),D])],i in [0..Min(o*(p-1),D)]];
+    sym:=true;
+
+    for d in Range do
+        a:=Max([STo(n,n,m,p,d[1],d[2]),PTo(o,o,p,d[1]+1,d[2]),0]);
+        b:=sthil(n,v,m,p,d[1],d[2]);
+        if b ne a then
+            if Min([STo(n,n,m,p,d[1],c):c in [0..d[2]-1]]) le 0 then
+                a:=Max(PTo(o,o,p,d[1]+1,d[2]),0);
+            end if;
+            if b ne a then
+                print [d[1],d[2],b,a];
+                sym:=false;
+            end if;
+        end if;
+    end for;
+
+    if sym then
+        printf "No error";
+    end if;
+end procedure;
