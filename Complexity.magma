@@ -1,0 +1,33 @@
+load"Math.magma";
+
+function schuretwodens(n1,n2,m,p,d1,d2)
+    a1:=&+[Fo(n1,p,d1-2*p^i)*Fo(n2,p,d2)*m:i in [0..5]|2*p^i le d1];
+    a2:=&+[Fo(n1,p,d1+p^i)*Fo(n2,p,d2-p^i):i in [0..5]|p^i le d2];
+    if p eq 2 then
+        b1:=&+[Binomial(n1-d1+2*p^i,2*p^i)*Fo(n1,p,d1-2*p^i)*Fo(n2,p,d2)*m:i in [0..5]|2*p^i le d1];
+    else
+        b1:=&+[Fo(n1,p,2*p^i)*Fo(n1,p,d1-2*p^i)*Fo(n2,p,d2)*m:i in [0..5]|2*p^i le d1];
+    end if;
+    b2:=&+[Binomial(d1+p^i,p^i)*Fo(n1,p,d1+p^i)*Fo(n2,p,d2-p^i):i in [0..5]|p^i le d2];
+    return Log(2,(b1+b2)/(a1+a2));
+end function;
+
+function stcplx(n,v,m,p,q,D)
+    Q:=[1,1,1,1,1000];
+    o:=n-v;
+    a:=Log(2,3*(2*Log(2,q)^2+Log(2,q)));
+
+    for k in [0..o-1] do
+        Range:=[[i,j]:j in [2..Min(i,(o-k)*(p-1))],i in [3..Min(D,(o-k)*(p-1))]];
+        for d in Range do
+            if STo(n-k,n-k,m,p,d[1],d[2]) le PTo(o-k,o-k,p,d[1]+1,d[2]) and PTo(o-k,o-k,p,d[1]+1,d[2]) gt 0 then 
+                b:=Floor(2*Log(2,Fo(n-k,p,d[1])*Fo(n-k,p,d[2]))+a+schuretwodens(n-k,n-k,m,p,d[1],d[2]));
+                if b le Q[5] then
+                    Q:=[k,k,d[1],d[2],b];
+                end if;
+            end if;
+        end for;
+    end for;
+
+    return Q;
+end function;
