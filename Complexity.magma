@@ -1,5 +1,88 @@
 load"Math.magma";
-load"Oddcplx.magma";
+
+function onedes(n,m,p,r,d)
+    if p eq 2 then
+        a:=&+[Binomial(n,d-2^(i+1))*m:i in [0..r]];
+        b:=&+[Binomial(n-d+2^(i+1),2^(i+1))*Binomial(n,d-2^(i+1))*m:i in [0..r]];
+    else
+        a:=&+[Fo(n,p,d-2*p^i)*m:i in [0..r]];
+        b:=&+[Fo(n,p,2*p^i)*Fo(n,p,d-2*p^i)*m:i in [0..r]];
+    end if;
+    return Log(2,b/a);
+end function;
+
+function schtwodes(n1,n2,m,p,r,d1,d2)
+    if p eq 2 then
+        a1:=&+[Binomial(n1,d1-2^(i+1))*Binomial(n2,d2)*m:i in [0..r]];
+        a2:=&+[Binomial(n1,d1+2^i)*Binomial(n2,d2-2^i):i in [0..Ilog2(d2)]];
+        b1:=&+[Binomial(n1-d1+2^(i+1),2^(i+1))*Binomial(n1,d1-2^(i+1))*Binomial(n2,d2)*m:i in [0..r]];
+        b2:=&+[Binomial(d1+2^i,2^i)*Binomial(n1,d1+2^i)*Binomial(n2,d2-2^i):i in [0..Ilog2(d2)]];
+    else
+        a1:=&+[Fo(n1,p,d1-2*p^i)*Fo(n2,p,d2)*m:i in [0..r]];
+        a2:=&+[Fo(n1,p,d1+p^i)*Fo(n2,p,d2-p^i):i in [0..Floor(Log(p,d2))]];
+        b1:=&+[Fo(n1,p,2*p^i)*Fo(n1,p,d1-2*p^i)*Fo(n2,p,d2)*m:i in [0..r]];
+        b2:=&+[Binomial(d1+p^i,p^i)*Fo(n1,p,d1+p^i)*Fo(n2,p,d2-p^i):i in [0..Floor(Log(p,d2))]];
+    end if;
+    return Log(2,(b1+b2)/(a1+a2));
+end function;
+
+function onecplx(n,v,m,q,r)
+    Q:=[1,1,1,1000];
+    p:=PrimeDivisors(q)[1];
+    o:=n-v;
+    A:=Log(2,3*(2*Log(2,q)^2+Log(2,q)));
+    if p eq 2 then
+        for k in [0..o-1] do
+            if To(n-k,m,[2,2^(r+1)],o-k) le 0 then
+                rho:=onedes(n-k,m,2,r,o-k);
+                C:=Floor(2*Log(2,Binomial(n-k,o-k))+A+rho);
+                if C le Q[4] then Q:=[k,o-k,Floor(rho),C]; end if;
+            end if;
+        end for;
+    else
+        for k in [0..o-1] do
+            for d in [1..(o-k)*(p-1)] do
+                if To(n-k,m,[p,p^(r+1)],d) le Fo(o-k,p,d) then
+                    rho:=onedes(n-k,m,p,r,d);
+                    C:=Floor(2*Log(2,Fo(n-k,p,d))+A+rho);
+                    if C le Q[4] then Q:=[k,d,Floor(rho),C]; end if;
+                end if;
+            end for;
+        end for;
+    end if;
+    return Q;
+end function;
+
+function schtwocplx(n,v,m,q,r)
+    Q:=[1,1,1,1,1000];
+    p:=PrimeDivisors(q)[1];
+    o:=n-v;
+    A:=Log(2,3*(2*Log(2,q)^2+Log(2,q)));
+    if p eq 2 then
+        for k2 in [0..o-1] do
+            for k1 in [0..k2] do
+                if Sto(n-k1,n-k2,m,2,r,o-k1,o-k2) le 0 then
+                    C:=Floor(2*Log(2,Binomial(n-k1,o-k1)*Binomial(n-k2,o-k2))+A+schtwodes(n-k1,n-k2,m,2,r,o-k1,o-k2));
+                    if C le Q[5] then Q:=[k1,k2,o-k1,o-k2,C]; end if;
+                end if;
+            end for;
+        end for;
+    else
+        for k2 in [0..o-1] do
+            for k1 in [0..k2] do
+                for d1 in [1..Min((o-k1)*(p-1),40)] do
+                    for d2 in [1..Min(d1,(o-k2)*(p-1))] do
+                        if Sto(n-k1,n-k2,m,p,r,d1,d2) le 0 and UUo(o-k1,o-k2,p,d1,d2) ne 0 then
+                            C:=Floor(2*Log(2,Fo(n-k1,p,d1)*Fo(n-k2,p,d2))+A+schtwodes(n-k1,n-k2,m,p,r,d1,d2));
+                            if C le Q[5] then Q:=[k1,k2,d1,d2,C]; end if;
+                        end if;
+                    end for;
+                end for;
+            end for;
+        end for;
+    end if;
+    return Q;
+end function;
 
 procedure mayo(n,m,o)
     row:=[<"Attack","Level: r","Oil minus: [k1,k2]","Solving degree: [d1,d2]","Complexity: C">];
