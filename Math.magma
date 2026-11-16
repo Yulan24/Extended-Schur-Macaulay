@@ -6,6 +6,7 @@ function Fo(n,p,d)
 end function;
 
 function Go(n,p,d)
+    if d lt 0 then return 0; end if;
     return &+[(-1)^(d-p*i)*Binomial(n,d-p*i)*Binomial(n+i-1,i):i in [0..d div p]];
 end function;
 
@@ -13,15 +14,92 @@ function Ho(n,m,p,d)
     return &+[(-1)^i*Binomial(m,i)*Fo(n,p,d-2*i):i in [0..d div 2]];
 end function;
 
+function To(n,m,p,d)
+    if Type(p) eq RngIntElt then
+        p:=[p,p];
+        return To(n,m,p,d);
+    else
+        return &+[Fo(n,p[1],d-2*i)*Go(m,p[2],i):i in [0..d div 2]];
+    end if;
+end function;
+
+function Uo(n1,n2,p,d1,d2)
+    if d1 lt 0 or d2 lt 0 then return 0; end if;
+    return Fo(n1,p,d1-1)*Fo(n2,p,d2)-Fo(n1,p,d1)*Fo(n2,p,d2-1);
+end function;
+
+function UUo(n1,n2,p,d1,d2)
+    if n1 eq n2 then return Uo(n1,n2,p,d1,d2); else return &+[Fo(n1-n2,p,i)*Uo(n2,n2,p,d1-i,d2):i in [0..d1-d2]]; end if;
+end function;
+
+function Sto(n1,n2,m,p,r,d1,d2)
+    a:=0;
+    for i in [0..(d1+1) div 2] do
+        for j in [0..d2 div 2] do
+            for k in [0..Min(d1+1-2*i,d2-2*j)] do
+                a:=a+Go(m,p^(r+1),i)*Go(m,p^(r+1),j)*Go(m,p^(r+1),k)*Uo(n1,n2,p,d1+1-2*i-k,d2-2*j-k);
+            end for;
+        end for;
+    end for;
+    return a;
+end function;
+
+
+function Vto(n1,n2,m,p1,p2,p3,p4,d1,d2)
+    a:=0;
+    for i in [0..d1 div 2] do
+        for j in [0..d2 div 2] do
+            for k in [0..Min(d1-2*i,d2-2*j)] do
+                a:=a+Go(m,p2,i)*Go(2*m,p3,k)*Go(m,p4,j)*Fo(n1,p1,d1-2*i-k)*Fo(n2,p1,d2-2*j-k);
+            end for;
+        end for;
+    end for;
+    return a;
+end function;
+
+
+
 function PTo(n1,n2,p,d1,d2)
-    if d1 lt 0 or d2 lt 0 then
+    if d1 lt 0 or d2 lt 0 or d1 lt d2 then
         return 0;
     end if;
     return Fo(n1,p,d1-1)*Fo(n2,p,d2)-Fo(n1,p,d1)*Fo(n2,p,d2-1);
 end function;
 
-function STo(n1,n2,m,p,d1,d2)
-    return &+[(-1)^(i+j+k)*Binomial(m,i)*Binomial(m,j)*Binomial(m,k)*PTo(n1,n2,p,d1+1-2*i-k,d2-2*j-k):k in [0..Min(d1+1-2*i,d2-j)],i in [0..(d1+1) div 2],j in [0..d2 div 2]];
+function SSTo(n1,n2,m,p,d1,d2)
+    return &+[Go(m,p,i)*Go(m,p,j)*Go(m,p,k)*PTo(n1,n2,p,d1+1-2*i-k,d2-2*j-k):k in [0..Min(d1+1-2*i,d2-j)],i in [0..(d1+1) div 2],j in [0..d2 div 2]];
+end function;
+
+
+function SFo(n,m,p,d)
+    A:=0;
+    for iab in [0..Min([d[1],d[2],2*m])] do
+        for iac in [0..Min([d[1]-iab,d[3],2*m])] do
+            for iad in [0..Min([d[1]-iab-iac,d[4],2*m])] do
+                for ibc in [0..Min([d[2]-iab,d[3]-iac,2*m])] do
+                    for ibd in [0..Min([d[2]-iab-ibc,d[4]-iad,2*m])] do
+                        for icd in [0..Min([d[3]-iac-ibc,d[4]-iad-ibd,2*m])] do
+                            B:=(-1)^(iab+iac+iad+ibc+ibd+icd)*Binomial(2*m,iab)*Binomial(2*m,iac)*Binomial(2*m,iad)*Binomial(2*m,ibc)*Binomial(2*m,ibd)*Binomial(2*m,icd);
+                            A:=A+B*Ho(n[1],m,p,d[1]-iab-iac-iad)*Ho(n[2],m,p,d[2]-iab-ibc-ibd)*Ho(n[3],m,p,d[3]-iac-ibc-icd)*Ho(n[4],m,p,d[4]-iad-ibd-icd);
+                        end for;
+                    end for;
+                end for;
+            end for;
+        end for;
+    end for;
+    return A;
+end function;
+
+
+function snodentwo(n1,n2,m,d1,d2)
+    p:=2;
+    a1:=&+[Binomial(n1,d1-2*p^i)*Binomial(n2,d2)*m:i in [0..10]|2*p^i le d1];
+    a2:=&+[Binomial(n1,d1-p^i)*Binomial(n2,d2-p^i)*m:i in [0..10]|p^i le Minimum(d1,d2)];
+    a3:=&+[Binomial(n1,d1)*Binomial(n2,d2-2*p^i)*m:i in [0..10]|2*p^i le d2];
+    b1:=&+[Binomial(n1-d1+2*p^i,2*p^i)*Binomial(n1,d1-2*p^i)*Binomial(n2,d2)*m:i in [0..10]|2*p^i le d1];
+    b2:=&+[Binomial(n1-d1+p^i,p^i)*Binomial(n2-d2+p^i,p^i)*Binomial(n1,d1-p^i)*Binomial(n2,d2-p^i)*m:i in [0..10]|p^i le Minimum(d1,d2)];
+    b3:=&+[Binomial(n2-d2+2*p^i,2*p^i)*Binomial(n1,d1)*Binomial(n2,d2-2*p^i)*m:i in [0..10]|2*p^i le d2];
+    return Log(2,(b1+2*b2+b3)/(a1+2*a2+a3));
 end function;
 
 function gammon(u,k)
@@ -49,3 +127,141 @@ function gamgen(f,k)
 
     return &+[gammon(Q[1],i)*gamgen(f-T[1],k-i):i in [0..Minimum(p-1,k)]];
 end function;
+
+function ctb(n,A,d)
+    if n eq 1 and d le A[1] then return [[d]];
+    elif n eq 1 and d gt A[1] then return [];
+    elif Type(A) eq RngIntElt then
+        A:=[A:i in [1..n]];
+        return ctb(n,A,d);
+    end if;
+
+    lo:=Max(0,d-(&+[A[i]:i in [2..n]]));
+    lu:=Min(A[1],d);
+    result:=[];
+
+    if lo gt lu then return []; end if;
+
+    for i in [lo..lu] do
+        for B in ctb(n-1,[A[j]:j in [2..n]],d-i) do
+            Append(~result,[i] cat B);
+        end for;
+    end for;
+
+    return result;
+end function;
+
+function idx(A,p)
+    return &+[A[i]*p^(i-1):i in [1..#A]];
+end function;
+
+function onecefmat(f,Clu,d)
+    R:=Parent(f);
+    n:=Rank(R);
+    F:=BaseRing(R);
+    p:=Characteristic(F);
+    A:=[Exponents(u):u in Monomials(f)];
+    C:=Coefficients(f);
+    X:=ctb(n,p-1,d-TotalDegree(f));
+    M:=ZeroMatrix(F,#X,#ctb(n,p-1,d));
+    b:=1;
+    for x in X do
+        for i in [1..#A] do
+            B:=[x[j]+A[i][j]:j in [1..n]];
+            if Max(B) lt p then
+                M[b,Clu[idx(B,p)]]:=C[i];
+            end if;
+        end for;
+        b:=b+1;
+    end for;
+    return M;
+end function;
+
+function twocefmat(f,Clu,n1,d1,d2)
+    R:=Parent(f);
+    n:=Rank(R);
+    n2:=n-n1;
+    F:=BaseRing(R);
+    p:=Characteristic(F);
+    A:=[Exponents(u):u in Monomials(f)];
+    C:=Coefficients(f);
+    e1:=&+[A[1][i]:i in [1..n1]];
+    e2:=&+[A[1][i]:i in [n1+1..n]];
+    X:=ctb(n1,p-1,d1-e1);
+    Y:=ctb(n2,p-1,d2-e2);
+    M:=ZeroMatrix(F,#X*#Y,#ctb(n1,p-1,d1)*#ctb(n2,p-1,d2));
+    a:=1;
+    for x in X do
+        for y in Y do
+            for i in [1..#A] do
+                B:=[x[j]+A[i][j]:j in [1..n1]] cat [y[j]+A[i][n1+j]:j in [1..n2]];
+                if Max(B) lt p then M[a,Clu[idx(B,p)]]:=C[i]; end if;
+            end for;
+            a:=a+1;
+        end for;
+    end for;
+    return M;
+end function;
+
+
+
+function uovpk(n,v,m,k,q)
+    F:=GF(q);
+    R:=PolynomialRing(F,n);
+    L:=[R.i+(&+[Random(F)*R.j:j in [v+1..n]]):i in [1..v]] cat [R.i:i in [v+1..n]];
+    G:=[&+[Random(F)*R.i*R.j:j in [i..n],i in [1..v]]:i in [1..m]];
+    G:=[Evaluate(f,L):f in G];
+    if k eq 0 then return [G,[L[i]:i in [1..v]]];
+    else
+        T:=PolynomialRing(F,n-k);
+        D:=[T.i:i in [1..n-k]] cat [0:i in [n-k+1..n]];
+        G:=[Evaluate(f,D):f in G];
+        L:=[Evaluate(L[i],D):i in [1..v]];
+        return [G,L];
+    end if;
+end function;
+
+
+function DTo(n1,n2,m,p,d1,d2)
+    return &+[&+[(-1)^(i+j+k)*Binomial(m,i)*Binomial(m,j)*Binomial(2*m,k)*Fo(n1,p,d1-2*i-k)*Fo(n2,p,d2-2*j-k):k in [0..Minimum(d1-2*i,d2-2*j)]]:i in [0..d1 div 2],j in [0..d2 div 2]];
+end function;
+
+
+procedure gncplx(n,v,m,p)
+    for k in [1..n-v-1] do
+        Q:=[];
+        D2:=(n-v-k)*(p-1);
+        D1:=(n-k)*(p-1)-(n-k+2*m)*(p-1) div 2+2;
+        for d in [D1..D2] do
+            if To(n-k,m,p,d) le To(n-k,m,p,(n-k-2*m)*(p-1)-d)+Fo(n-v-k,p,(n-v-k)*(p-1)-d) then
+                b:=Ceiling(Log(2,(Fo(n-k,p,d)-To(n-k,m,p,(n-k-2*m)*(p-1)-d)-Fo(n-v-k,p,d)+1)^2+Fo(n-k,p,(n-k-2*m)*(p-1)-d)^3)+Log(2,3*Binomial(n+1,2)*(2*Log(2,p)^2+Log(2,p))));
+                Append(~Q,[k,d,b]);
+            end if;
+        end for;
+        if Q ne [] then
+            Sort(~Q,func<a,b|a[3]-b[3]>);
+            print(Q[1]);
+        end if;
+    end for;
+end procedure;
+
+procedure maketable(row)
+    a:=#row;
+    b:=#row[1];
+    w:=[Max([#r[j]:r in row]):j in [1..b]];
+    for i in [1..a] do
+        printf "+";
+        for j in [1..b] do for k in [1..w[j]+2] do printf "-"; end for; printf "+"; end for;
+        printf "\n";
+        printf "|";
+        for j in [1..b] do
+            printf " %o", row[i][j]; 
+            for k in [#row[i][j]+1..w[j]+1] do printf " "; end for;
+            printf "|";
+        end for;
+        printf "\n";
+    end for;
+    printf "+";
+    for j in [1..b] do for k in [1..w[j]+2] do printf "-"; end for; printf "+"; end for;
+    printf "\n";
+end procedure;
